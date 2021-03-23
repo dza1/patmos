@@ -18,6 +18,7 @@ import io._
 import datacache._
 import ocp.{OcpCoreSlavePort, _}
 import argo._
+// import VGA._
 
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable
@@ -424,6 +425,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
     // Merge responses
     cores(i).io.memInOut.S.Resp := errRespReg | devios.map(e => getSlavePort(getIO(e.io, i)).S.Resp).fold(OcpResp.NULL)(_|_)
   }
+
+  val vga = Module(new VGA())
+  registerPins("vga", vga.io)
+
 
   // Connect memory controller
   val ramConf = config.ExtMem.ram

@@ -74,6 +74,7 @@ local/
 *.elf
 *.pml
 *.csv
+*.bak
 
 # Ignore Vivado journal files
 vivado*.jou

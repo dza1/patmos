@@ -27,15 +27,24 @@ entity patmos_top is
     oSRAM_OE_N : out std_logic;
     oSRAM_WE_N : out std_logic;
     oSRAM_LB_N : out std_logic;
-    oSRAM_UB_N : out std_logic
+    oSRAM_UB_N : out std_logic;
+    red 		: out std_logic_vector(7 downto 0);
+    green		: out std_logic_vector(7 downto 0);
+    blue		: out std_logic_vector(7 downto 0);
+    hs      : out std_logic;
+    vs      : out std_logic;
+    blank   : out std_logic;
+    sync    : out std_logic;
+    clock   : out std_logic
+   
   );
 end entity patmos_top;
 
 architecture rtl of patmos_top is
-	component Patmos is
-		port(
-			clock           : in  std_logic;
-			reset           : in  std_logic;
+  component Patmos is
+    port(
+      clock           : in  std_logic;
+      reset           : in  std_logic;
 
       io_Leds_led : out std_logic_vector(8 downto 0);
       io_Keys_key : in  std_logic_vector(3 downto 0);
@@ -50,7 +59,15 @@ architecture rtl of patmos_top is
       io_SramCtrl_ramOut_noe : out std_logic;
       io_SramCtrl_ramOut_nwe : out std_logic;
       io_SramCtrl_ramOut_nlb : out std_logic;
-      io_SramCtrl_ramOut_nub : out std_logic
+      io_SramCtrl_ramOut_nub : out std_logic;
+      io_VGA_red 		         : out std_logic_vector(7 downto 0);
+      io_VGA_green		       : out std_logic_vector(7 downto 0);
+      io_VGA_blue		         : out std_logic_vector(7 downto 0);
+      io_VGA_hs              : out std_logic;
+      io_VGA_vs              : out std_logic;
+      io_VGA_blank           : out std_logic;
+      io_VGA_sync            : out std_logic;
+      io_VGA_clock           : out std_logic
 
     );
   end component;
@@ -119,6 +136,14 @@ begin
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
-           oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
+           oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N,
+			     red,
+           green,
+           blue,
+           hs,
+           vs,
+           blank,
+           sync,
+           clock);
 
 end architecture rtl;
