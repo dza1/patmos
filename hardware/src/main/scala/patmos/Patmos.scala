@@ -18,7 +18,7 @@ import io._
 import datacache._
 import ocp.{OcpCoreSlavePort, _}
 import argo._
-// import VGA._
+//import VGA._
 
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable
@@ -438,24 +438,30 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // TODO: fix memory arbiter to have configurable memory timing.
   // E.g., it does not work with on-chip main memory.
-  if (cores.length == 1) {
+  if (cores.length == 0) {
     ramCtrl.io.ocp.M <> cores(0).io.memPort.M
     cores(0).io.memPort.S <> ramCtrl.io.ocp.S
     ramCtrl.io.superMode <> cores(0).io.superMode
   } else {
     val memarbiter =
-      if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl]) {
-        Module(new ocp.Arbiter(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+       if(ramCtrl.isInstanceOf[DDR3Bridge] || ramCtrl.isInstanceOf[OCRamCtrl]) {
+        Module(new ocp.Arbiter(nrCores + 1 , ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       } else {
-        Module(new ocp.TdmArbiterWrapper(nrCores, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+        Module(new ocp.TdmArbiterWrapper(nrCores +1, ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
       }
     for (i <- (0 until cores.length)) {
       memarbiter.io.master(i).M <> cores(i).io.memPort.M
       cores(i).io.memPort.S <> memarbiter.io.master(i).S
     }
+    //Connect VGA Controller
+    memarbiter.io.master(nrCores).M <> vga.io.memPort.M
+    vga.io.memPort.S <> memarbiter.io.master(nrCores).S
+
+
     ramCtrl.io.ocp.M <> memarbiter.io.slave.M
     memarbiter.io.slave.S <> ramCtrl.io.ocp.S
-    ramCtrl.io.superMode := false.B
+    //ramCtrl.io.superMode := false.B
+    ramCtrl.io.superMode <> cores(0).io.superMode
   }
 
   override val io = IO(new PatmosBundle(pins.map{case (pinid, devicepin) => pinid -> DataMirror.internal.chiselTypeClone(devicepin)}.toSeq: _*))
