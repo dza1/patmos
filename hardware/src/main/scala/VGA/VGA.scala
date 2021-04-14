@@ -14,23 +14,24 @@ import ocp.{OcpCoreSlavePort, _}
 class VGA extends Module {
   val io = IO(new Bundle() with patmos.HasPins {
     val pins = new Bundle() {
-    val red = Output(UInt(8.W))
-    val green = Output(UInt(8.W))
-    val blue = Output(UInt(8.W))
-    val hs = Output(UInt(1.W))
-    val vs = Output(UInt(1.W))
-    val blank = Output(UInt(1.W))
-    val sync = Output(UInt(1.W))
-    val clock = Output(UInt(1.W))
-    //val memPort = new OcpBurstMasterPort(32, 32, 4)
-  }
-  val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+      val red = Output(UInt(8.W))
+      val green = Output(UInt(8.W))
+      val blue = Output(UInt(8.W))
+      val hs = Output(UInt(1.W))
+      val vs = Output(UInt(1.W))
+      val blank = Output(UInt(1.W))
+      val sync = Output(UInt(1.W))
+      val clock = Output(UInt(1.W))
+      //val memPort = new OcpBurstMasterPort(32, 32, 4)
+    }
+    val memPort =
+      new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   })
 
   // 640*480
   val buffer = Module(new Buffer())
   val CNT_MAX = (50000000 / 2 - 1).U;
-  val HS_COUNT = (800 - 1).U;
+  val HS_COUNT = (800 - 1).U; 
   val VS_COUNT = (521 - 1).U;
   val VS_LEN = (96 - 1).U;
   val HS_LEN = (2 - 1).U;
@@ -59,13 +60,10 @@ class VGA extends Module {
   io.pins.green := buffer.io.green
   io.pins.blue := buffer.io.blue
 
-  buffer.io.line_cnt := lineCountReg
+
   io.memPort <> buffer.io.memPort
 
-  //io.pins.memPort <> buffer.io.memPort 
-
-
-
+  //io.pins.memPort <> buffer.io.memPort
 
   clkDev := clkDev + 1.U
   when(clkDev === 2.U) { //Devide clock
@@ -106,7 +104,14 @@ class VGA extends Module {
     buffer.io.rd_addr := pixelCountReg - HS_START
   }
     .otherwise {
-      buffer.io.rd_addr := 0.U(11.W)
+      buffer.io.rd_addr := 0.U(10.W)
+    }
+
+  when(lineCountReg >= VS_START && lineCountReg <= VS_STOP) {
+      buffer.io.line_cnt := lineCountReg - VS_START
+  }
+    .otherwise {
+      buffer.io.line_cnt := 0.U(10.W)
     }
 
   cntReg := cntReg + 1.U

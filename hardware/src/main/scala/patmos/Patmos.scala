@@ -453,7 +453,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
       memarbiter.io.master(i).M <> cores(i).io.memPort.M
       cores(i).io.memPort.S <> memarbiter.io.master(i).S
     }
-    //Connect VGA Controller
+    //Connect VGA Controller to Abiter
     memarbiter.io.master(nrCores).M <> vga.io.memPort.M
     vga.io.memPort.S <> memarbiter.io.master(nrCores).S
 
