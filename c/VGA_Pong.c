@@ -21,7 +21,7 @@
 #define DISPLAY_HEIGTH 480
 
 #define RAD 5                         // radius in pixel
-#define RADCOLOR 0b001100 | 0b11 << 6 // color of radius  /BRG
+#define RADCOLOR 0b001100 | 0b11 << 6 // color of radius  /BRG   0b11 << 6 is the intensity
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -72,9 +72,8 @@ int main() {
 void drawCircle(int m_x, int m_y, int r, uint8_t color) {
 
   for (int y = m_y - r; y < (m_y + r); y++) {
-    int y_rel = y - m_y;
-    int x_start = m_x - sqrt(r * r - y_rel * y_rel);
-    int x_stop = m_x + sqrt(r * r - y_rel * y_rel);
+    int x_start, x_stop;
+    calcStartStop(m_x, m_y, y, r, &x_start, &x_stop);
     for (int x = x_start; x < x_stop; x++) {
       if (x >= 0 && x < LINE_WIDTH && y >= 0 && y < DISPLAY_HEIGTH) {
         (*vga_arr)[y][x] = color;
@@ -110,8 +109,9 @@ void drawChanges(int m_x_old, int m_y_old, int m_x_new, int m_y_new, int r,
 void calcStartStop(int m_x, int m_y, int y, int r, int *x_start, int *x_stop) {
   if ((m_y - r) <= y && (m_y + r) >= y) {
     int y_rel = y - m_y;
-    *x_start = m_x - sqrt(r * r - y_rel * y_rel);
-    *x_stop = m_x + sqrt(r * r - y_rel * y_rel);
+    int delta_x= sqrt(r * r - y_rel * y_rel);
+    *x_start = m_x - delta_x;
+    *x_stop = m_x + delta_x;
   } else {
     *x_start = 0;
     *x_stop = 0;
