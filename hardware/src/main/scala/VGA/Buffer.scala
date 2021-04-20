@@ -17,15 +17,6 @@ class Buffer extends Module {
   val DISPLAY_HEIGTH = 480
 
   val VGA_MEM_BASE_ADDR = 400000.U
-  //MCmd Values
-  // val OCP_IDLE = 0.U(3.W)
-  // val OCP_WR = 1.U(3.W)
-  // val OCP_RD = 2.U(3.W)
-  // SResp values
-  // val NULL = 0.U(2.W)
-  // val DVA = 1.U(2.W)
-  // val FAIL = 2.U(2.W)
-  // val ERR = 3.U(2.W)
 
   val request :: read :: done :: Nil = Enum(3)
 
@@ -40,15 +31,12 @@ class Buffer extends Module {
     val line_cnt = Input(UInt(10.W))
     val rd_addr = Input(UInt(10.W)) //log(LINE_WIDTH)
 
-    //Memory IO
-
     //val memPort = new OcpBurstMasterPort(32, 32, BURST)
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   })
 
   //fill memory with random colors
 
-  val color = 48.U(8.W)
   val cnt = RegInit(0.U(11.W))
 
   val ocpState = RegInit(request)
@@ -58,21 +46,11 @@ class Buffer extends Module {
 
   val ocpLineCnt = RegInit(0.U(10.W))
 
-  when(cnt < LINE_WIDTH.U) {
 
-    when((cnt >> 3) % 2.U === 0.U) {
-      memory.write(cnt, color)
-    }
-      .otherwise {
-        memory.write(cnt, color >> 2)
-      }
-    cnt := cnt + 1.U
-  }
-
-  //Read for VGA controller
-    io.red := memory.read(io.rd_addr)(1, 0)<<6
-    io.green := memory.read(io.rd_addr)(3, 2)<<6
-    io.blue := memory.read(io.rd_addr)(5, 4)<<6
+  //VGA controller read
+    io.red := memory.read(io.rd_addr)(1, 0)  << (memory.read(io.rd_addr)(7,6)<<1)
+    io.green := memory.read(io.rd_addr)(3, 2)<< (memory.read(io.rd_addr)(7,6)<<1)
+    io.blue := memory.read(io.rd_addr)(5, 4) << (memory.read(io.rd_addr)(7,6)<<1)
 
 
 
@@ -98,7 +76,7 @@ class Buffer extends Module {
       ocpWordCnt := 0.U;
       when(io.memPort.S.Resp === OcpResp.DVA) {
 
-        when(ocpBuffAddr === (LINE_WIDTH.U - 4.U)) { //reset the counter (-2 because in the last step we write two adresses and we start with 0)
+        when(ocpBuffAddr === (LINE_WIDTH.U - 4.U)) { //reset the counter (-4 because we read 4 byte on one burst)
           ocpState := done
         }
           .otherwise {

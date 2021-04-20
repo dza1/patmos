@@ -100,6 +100,7 @@ class VGA extends Module {
     clkDev := 0.U
   }
 
+  //send the address of the column to the buffer, if we are in the display area 
   when(pixelCountReg >= HS_START && pixelCountReg <= HS_STOP) {
     buffer.io.rd_addr := pixelCountReg - HS_START
   }
@@ -107,6 +108,7 @@ class VGA extends Module {
       buffer.io.rd_addr := 0.U(10.W)
     }
 
+  //send the line number of the displayed area
   when(lineCountReg >= VS_START && lineCountReg <= VS_STOP) {
       buffer.io.line_cnt := lineCountReg - VS_START
   }
