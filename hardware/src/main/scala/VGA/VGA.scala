@@ -31,10 +31,10 @@ class VGA extends Module {
   // 640*480
   val buffer = Module(new Buffer())
   val CNT_MAX = (50000000 / 2 - 1).U;
-  val HS_COUNT = (800 - 1).U; 
+  val HS_COUNT = (800+47 - 1).U; //-47 to compensate the high frequenz (80/3 = 26.66, but we need 25,1MHz)
   val VS_COUNT = (521 - 1).U;
-  val VS_LEN = (96 - 1).U;
-  val HS_LEN = (2 - 1).U;
+  val HS_LEN = (96 - 1).U;
+  val VS_LEN = (2 - 1).U;
 
   val HS_START = (144 - 1).U;
   val HS_STOP = (784 - 1).U;
@@ -70,7 +70,7 @@ class VGA extends Module {
     pixelCountReg := pixelCountReg + 1.U
 
     //Horizontal
-    when(pixelCountReg === VS_LEN && lineCountReg >= 2.U) {
+    when(pixelCountReg === HS_LEN && lineCountReg >= 2.U) {
       hsReg := 1.U
     }
 
@@ -83,7 +83,7 @@ class VGA extends Module {
         lineCountReg := 0.U
         vsReg := 0.U
       }
-      when(lineCountReg === HS_LEN) {
+      when(lineCountReg === VS_LEN) {
         vsReg := 1.U
       }
     }
