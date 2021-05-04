@@ -20,39 +20,22 @@ class EmbMem extends Module{
     val writeAddr = Input(UInt(10.W)) 
     val rd_addr = Input(UInt(10.W)) 
     val writeData =Input (UInt (32.W))
-    val readData =Output (UInt (8.W))
+    val readData =Output (UInt (32.W))
   })
   val LINE_WIDTH = 640
   val memory = SyncReadMem(LINE_WIDTH/4, UInt(32.W))
   when(io.writeEn){
     memory.write(io.writeAddr, io.writeData)
   }
-
-  //OCP sends the lowest address as highest byte
-  io.readData:=0.U
-  switch (io.rd_addr(1,0)) {
-    is(3.U){
-      io.readData:= memory.read(io.rd_addr>>2)(7, 0)
-    }
-    is(2.U){
-      io.readData:= memory.read(io.rd_addr>>2)(15, 8)
-    }
-    is(1.U){
-      io.readData:= memory.read(io.rd_addr>>2)(23, 16)
-    }
-    is(0.U){
-      io.readData:= memory.read(io.rd_addr>>2)(31, 24)
-    }
-  }
+  io.readData:= memory.read(io.rd_addr>>2)
+  
 }
 
 
 class Buffer extends Module {
   val LINE_WIDTH = 640
   val DISPLAY_HEIGTH = 480
-
   val VGA_MEM_BASE_ADDR = 400000.U
-
   val request :: read :: done :: Nil = Enum(3)
 
   
@@ -62,10 +45,8 @@ class Buffer extends Module {
     val red = Output(UInt(8.W))
     val green = Output(UInt(8.W))
     val blue = Output(UInt(8.W))
-
     val line_cnt = Input(UInt(10.W))
     val rd_addr = Input(UInt(10.W)) //log(LINE_WIDTH)
-
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   })
 
@@ -80,7 +61,20 @@ class Buffer extends Module {
   
   //VGA controller read
     memory.io.rd_addr:=io.rd_addr
-    pixel_reg := memory.io.readData
+    switch (io.rd_addr(1,0)) {
+    is(3.U){
+      pixel_reg := memory.io.readData(7, 0)
+    }
+    is(2.U){
+      pixel_reg := memory.io.readData(15, 8)
+    }
+    is(1.U){
+      pixel_reg := memory.io.readData(23, 16)
+    }
+    is(0.U){
+      pixel_reg := memory.io.readData(31, 24)
+    }
+  }
 
     io.red := pixel_reg(1,0)  <<   (pixel_reg(7,6)<<1)
     io.green := pixel_reg(3,2)<< (pixel_reg(7,6)<<1)
@@ -94,7 +88,6 @@ class Buffer extends Module {
   io.memPort.M.Data := 0.U(21.W)
   io.memPort.M.DataValid := 0.U
   io.memPort.M.DataByteEn := 0.U(1.W)
-
   io.memPort.M.Addr := VGA_MEM_BASE_ADDR + ocpLineCnt * LINE_WIDTH.U + ocpBuffAddr
 
   memory.io.writeEn:= false.B
@@ -126,7 +119,6 @@ class Buffer extends Module {
         memory.io.writeEn:= true.B
         memory.io.writeData:=io.memPort.S.Data
         memory.io.writeAddr:=ocpBuffAddr>>2
-
         ocpBuffAddr := ocpBuffAddr + 4.U
       }
 
