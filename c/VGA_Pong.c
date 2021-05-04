@@ -20,7 +20,7 @@
 #define LINE_WIDTH 640
 #define DISPLAY_HEIGTH 480
 
-#define RAD 5                         // radius in pixel
+#define RAD 10                         // radius in pixel
 #define RADCOLOR 0b001100 | 0b11 << 6 // color of radius  /BRG   0b11 << 6 is the intensity
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -36,7 +36,6 @@ void calcStartStop(int m_x, int m_y, int y, int r, int *x_start, int *x_stop);
 int main() {
 
   uint8_t color = 15;
-  volatile _SPM int *led_ptr = (volatile _SPM int *)PATMOS_IO_LED;
 
   // Plot a background
   for (int r = 0; r < DISPLAY_HEIGTH; r++) {
@@ -49,7 +48,6 @@ int main() {
     }
   }
 
-  //drawCircle(RAD, RAD, RAD, RADCOLOR);
   int m_x_new, m_x_old = RAD;
   int m_y_new, m_y_old = RAD;
   int dir_x = 1, dir_y = 1;

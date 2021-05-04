@@ -8,9 +8,44 @@ package Buffer
 //import Chisel._
 import patmos.Constants._
 import chisel3._
-import chisel3.Driver
 import chisel3.util._
 import ocp._
+import chisel3.util.experimental.loadMemoryFromFile
+
+
+//need to be a modulo, to use the mem blocks instead of FF
+class EmbMem extends Module{
+    val io = IO(new Bundle() {
+    val writeEn = Input(Bool()) 
+    val writeAddr = Input(UInt(10.W)) 
+    val rd_addr = Input(UInt(10.W)) 
+    val writeData =Input (UInt (32.W))
+    val readData =Output (UInt (8.W))
+  })
+  val LINE_WIDTH = 640
+  val memory = SyncReadMem(LINE_WIDTH/4, UInt(32.W))
+  when(io.writeEn){
+    memory.write(io.writeAddr, io.writeData)
+  }
+
+  //OCP sends the lowest address as highest byte
+  io.readData:=0.U
+  switch (io.rd_addr(1,0)) {
+    is(3.U){
+      io.readData:= memory.read(io.rd_addr>>2)(7, 0)
+    }
+    is(2.U){
+      io.readData:= memory.read(io.rd_addr>>2)(15, 8)
+    }
+    is(1.U){
+      io.readData:= memory.read(io.rd_addr>>2)(23, 16)
+    }
+    is(0.U){
+      io.readData:= memory.read(io.rd_addr>>2)(31, 24)
+    }
+  }
+}
+
 
 class Buffer extends Module {
   val LINE_WIDTH = 640
@@ -20,7 +55,7 @@ class Buffer extends Module {
 
   val request :: read :: done :: Nil = Enum(3)
 
-  val memory = SyncReadMem(LINE_WIDTH, UInt(8.W))
+  
 
   val io = IO(new Bundle() {
     //VGA controller IO
@@ -31,26 +66,25 @@ class Buffer extends Module {
     val line_cnt = Input(UInt(10.W))
     val rd_addr = Input(UInt(10.W)) //log(LINE_WIDTH)
 
-    //val memPort = new OcpBurstMasterPort(32, 32, BURST)
     val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   })
 
-  //fill memory with random colors
-
-  val cnt = RegInit(0.U(11.W))
-
+  val memory = Module (new EmbMem())
+  val pixel_reg = RegInit(0.U(8.W))
   val ocpState = RegInit(request)
   val ocpWordCnt = RegInit(0.U(3.W))
-
   val ocpBuffAddr = RegInit(0.U(11.W))
-
   val ocpLineCnt = RegInit(0.U(10.W))
 
 
+  
   //VGA controller read
-    io.red := memory.read(io.rd_addr)(1, 0)  << (memory.read(io.rd_addr)(7,6)<<1)
-    io.green := memory.read(io.rd_addr)(3, 2)<< (memory.read(io.rd_addr)(7,6)<<1)
-    io.blue := memory.read(io.rd_addr)(5, 4) << (memory.read(io.rd_addr)(7,6)<<1)
+    memory.io.rd_addr:=io.rd_addr
+    pixel_reg := memory.io.readData
+
+    io.red := pixel_reg(1,0)  <<   (pixel_reg(7,6)<<1)
+    io.green := pixel_reg(3,2)<< (pixel_reg(7,6)<<1)
+    io.blue := pixel_reg(5,4) <<  (pixel_reg(7,6)<<1)
 
 
 
@@ -63,6 +97,9 @@ class Buffer extends Module {
 
   io.memPort.M.Addr := VGA_MEM_BASE_ADDR + ocpLineCnt * LINE_WIDTH.U + ocpBuffAddr
 
+  memory.io.writeEn:= false.B
+  memory.io.writeData:= 0.U
+  memory.io.writeAddr := 0.U
   switch(ocpState) {
     is(request) {
       io.memPort.M.Cmd := OcpCmd.RD
@@ -86,11 +123,10 @@ class Buffer extends Module {
           }
 
         ocpWordCnt := ocpWordCnt + 1.U
-        //split write from OCP to Buffer in 3 states
-        memory.write(ocpBuffAddr + 3.U, io.memPort.S.Data(7, 0))
-        memory.write(ocpBuffAddr + 2.U, io.memPort.S.Data(15, 8))
-        memory.write(ocpBuffAddr + 1.U, io.memPort.S.Data(23, 16))
-        memory.write(ocpBuffAddr + 0.U, io.memPort.S.Data(31, 24))
+        memory.io.writeEn:= true.B
+        memory.io.writeData:=io.memPort.S.Data
+        memory.io.writeAddr:=ocpBuffAddr>>2
+
         ocpBuffAddr := ocpBuffAddr + 4.U
       }
 
